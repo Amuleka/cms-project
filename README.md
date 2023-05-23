@@ -7,6 +7,7 @@ In this dynamic project, I'm embarking on the development of a sleek application
 # Development Environment
 
 We used VSCode as our code editor
+
 We also used Angular with TypeScript and Bootstrap
 
 # Useful Websites

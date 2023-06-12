@@ -11,8 +11,8 @@
         />
       </div>
       <div class="pull-right btn-primary">
-        <a class="btn btn-primary">Edit</a>
-        <a class="btn btn-danger">Delete</a>
+        <a [routerLink]="['edit']" class="btn btn-primary">Edit</a>
+        <a (click)="onDelete()" class="btn btn-danger">Delete</a>
       </div>
     </div>
     <div class="panel-body">

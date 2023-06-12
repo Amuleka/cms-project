@@ -5,7 +5,9 @@
         <span class="heading">Contacts</span>
       </div>
       <div class="col-xs-3">
-        <button class="btn btn-success">New Contact</button>
+        <button [routerLink]="['new']" class="btn btn-success">
+          New Contact
+        </button>
       </div>
     </div>
     <div class="panel-body">
@@ -14,7 +16,6 @@
           <app-contact-item
             *ngFor="let contact of contacts"
             [contact]="contact"
-            (click)="onSelected(contact)"
           ></app-contact-item>
         </div>
       </div>

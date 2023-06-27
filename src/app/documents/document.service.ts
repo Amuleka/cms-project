@@ -2,17 +2,19 @@ import { Injectable, EventEmitter } from '@angular/core';
 import { Document } from './document.model';
 import { MOCKDOCUMENTS } from './MOCKDOCUMENTS';
 import { Subject } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DocumentService {
+
   documentSelectedEvent = new EventEmitter<Document>();
   documentChangedEvent = new Subject<Document[]>();
 
   documents: Document[] = [];
 
-  constructor() {
+  constructor(private http: HttpClient) {
     this.documents = MOCKDOCUMENTS;
   }
 
@@ -38,7 +40,7 @@ export class DocumentService {
       return;
     }
     this.documents.splice(pos, 1);
-    this.documentChangedEvent.next(this.documents.slice());
+    this.storeDocuments();
   }
 
   addDocument(newDocument: Document) {
@@ -47,9 +49,8 @@ export class DocumentService {
     }
     newDocument.id = this.getMaxDocumentId().toString();
     this.documents.push(newDocument);
-    this.documentChangedEvent.next(this.documents.slice());
+    this.storeDocuments();
   }
-  
 
   updateDocument(originalDocument: Document, newDocument: Document) {
     if (!originalDocument || !newDocument) {
@@ -61,7 +62,7 @@ export class DocumentService {
     }
     newDocument.id = originalDocument.id;
     this.documents[pos] = newDocument;
-    this.documentChangedEvent.next(this.documents.slice());
+    this.storeDocuments();
   }
 
   private getMaxDocumentId(): number {
@@ -73,5 +74,19 @@ export class DocumentService {
       }
     }
     return maxId + 1;
+  }
+
+  private storeDocuments() {
+    const documentsString = JSON.stringify(this.documents);
+    const headers = new HttpHeaders().set('Content-Type', 'application/json');
+    this.http.put('https://cms-project-ba565-default-rtdb.firebaseio.com/documents.json', documentsString, { headers })
+      .subscribe(
+        () => {
+          this.documentChangedEvent.next(this.documents.slice());
+        },
+        (error: any) => {
+          console.error(error);
+        }
+      );
   }
 }

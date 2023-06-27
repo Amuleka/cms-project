@@ -1,7 +1,7 @@
 import { Injectable, EventEmitter } from '@angular/core';
 import { Contact } from './contact.model';
-import { MOCKCONTACTS } from './MOCKCONTACTS';
 import { Subject } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -12,11 +12,10 @@ export class ContactService {
 
   contacts: Contact[] = [];
 
-  constructor() {
-    this.contacts = MOCKCONTACTS;
-  }
+  constructor(private http: HttpClient) {}
 
   getContacts() {
+    this.fetchContacts();
     return this.contacts.slice();
   }
 
@@ -38,7 +37,7 @@ export class ContactService {
       return;
     }
     this.contacts.splice(pos, 1);
-    this.contactChangedEvent.next(this.contacts.slice());
+    this.storeContacts();
   }
 
   addContact(newContact: Contact) {
@@ -47,9 +46,8 @@ export class ContactService {
     }
     newContact.id = this.getMaxContactId().toString();
     this.contacts.push(newContact);
-    this.contactChangedEvent.next(this.contacts.slice());
+    this.storeContacts();
   }
-  
 
   updateContact(originalContact: Contact, newContact: Contact) {
     if (!originalContact || !newContact) {
@@ -61,7 +59,7 @@ export class ContactService {
     }
     newContact.id = originalContact.id;
     this.contacts[pos] = newContact;
-    this.contactChangedEvent.next(this.contacts.slice());
+    this.storeContacts();
   }
 
   private getMaxContactId(): number {
@@ -73,5 +71,33 @@ export class ContactService {
       }
     }
     return maxId + 1;
+  }
+
+  private fetchContacts() {
+    this.http
+      .get<Contact[]>('https://cms-project-ba565-default-rtdb.firebaseio.com/contacts.json')
+      .subscribe(
+        (contacts: Contact[]) => {
+          this.contacts = contacts;
+          this.contactChangedEvent.next(this.contacts.slice());
+        },
+        (error: any) => {
+          console.error(error);
+        }
+      );
+  }
+
+  private storeContacts() {
+    const contactsData = JSON.stringify(this.contacts);
+    this.http
+      .put('https://cms-project-ba565-default-rtdb.firebaseio.com/contacts.json', contactsData)
+      .subscribe(
+        () => {
+          this.contactChangedEvent.next(this.contacts.slice());
+        },
+        (error: any) => {
+          console.error(error);
+        }
+      );
   }
 }

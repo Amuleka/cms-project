@@ -1,7 +1,7 @@
 import { Injectable, EventEmitter } from '@angular/core';
 import { Message } from './message.model';
-import { Subject } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { Observable, Subject, catchError, of } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -17,8 +17,18 @@ export class MessageService {
     this.fetchMessages();
   }
 
+  private sortAndSend() {
+    this.messages.sort((a, b) => a.subject.localeCompare(b.subject));
+    this.messageChangedEvent.next(this.messages.slice());
+  }
+
+  getPostUpdateListener() {
+    return this.messageChangedEvent.asObservable();
+  }
+
+
   getMessages() {
-    return this.messages.slice();
+    return this.http.get<Message[]>('http://localhost:3000/messages');
   }
 
   getMessage(id: string): Message | null {
@@ -34,10 +44,76 @@ export class MessageService {
     if (!message) {
       return;
     }
-    message.id = this.getMaxMessageId().toString();
-    this.messages.push(message);
-    this.storeMessages();
+  
+    // make sure id of the new Message is empty
+    message.id = '';
+  
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+  
+    // add to database
+    this.http.post<{ messages: string, message: Message }>('http://localhost:3000/messages',
+      message,
+      { headers: headers })
+      .subscribe(
+        (responseData) => {
+          // add new message to messages
+          this.messages.push(responseData.message);
+          this.sortAndSend();
+        }
+      );
   }
+  
+
+  updateMessage(originalMessage: Message, newMessage: Message) {
+    if (!originalMessage || !newMessage) {
+      return;
+    }
+  
+    const pos = this.messages.findIndex(m => m.id === originalMessage.id);
+  
+    if (pos < 0) {
+      return;
+    }
+  
+    // Set the id of the new Message to the id of the old Message
+    newMessage.id = originalMessage.id;
+  
+    const headers = new HttpHeaders({'Content-Type': 'application/json'});
+  
+    // Update database
+    this.http.put('http://localhost:3000/messages/' + originalMessage.id, newMessage, { headers:headers })
+      .subscribe(() => {
+        this.messages[pos] = newMessage;
+        this.sortAndSend();
+      });
+  }
+  
+
+
+  deleteMessage(message: Message) {
+    if (!message) {
+      return;
+    }
+  
+    const pos = this.messages.findIndex(m => m.id === message.id);
+  
+    if (pos < 0) {
+      return;
+    }
+  
+    // Delete from database
+    this.http.delete('http://localhost:3000/messages/' + message.id)
+      .subscribe(
+        () => {
+          this.messages.splice(pos, 1);
+          this.sortAndSend();
+        },
+        (error) => {
+          console.error(error);
+        }
+      );
+  }
+  
 
   private getMaxMessageId(): number {
     let maxId = 0;
@@ -52,7 +128,7 @@ export class MessageService {
 
   private fetchMessages() {
     this.http
-      .get<Message[]>('https://cms-project-ba565-default-rtdb.firebaseio.com/messages.json')
+      .get<Message[]>('http://localhost:3000/messages')
       .subscribe(
         (messages: Message[]) => {
           this.messages = messages || [];
@@ -63,10 +139,11 @@ export class MessageService {
         }
       );
   }
+  
 
   private storeMessages() {
     this.http
-      .put('https://cms-project-ba565-default-rtdb.firebaseio.com/messages.json', this.messages)
+      .put('http://localhost:3000/messages', this.messages)
       .subscribe(
         () => {
           this.messageChangedEvent.next(this.messages.slice());

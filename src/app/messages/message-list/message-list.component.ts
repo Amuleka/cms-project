@@ -16,14 +16,20 @@ export class MessageListComponent implements OnInit{
   }
 
   ngOnInit() {
-    this.messages = this.messageService.getMessages();
-    this.messageService.messageChangedEvent
-    .subscribe(
+    this.messageService.getMessages().subscribe(
       (messages: Message[]) => {
         this.messages = messages;
       }
-    )
+    );
+  
+    this.messageService.messageChangedEvent.subscribe(
+      (messages: Message[]) => {
+        this.messages = messages;
+      }
+    );
   }
+  
+
 
   onAddMessage(message: Message) {
     this.messages.push(message);

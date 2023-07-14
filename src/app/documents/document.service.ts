@@ -22,7 +22,7 @@ export class DocumentService {
     this.documents.sort((a, b) => a.name.localeCompare(b.name));
     this.documentChangedEvent.next(this.documents.slice());
   }
-  
+   
 
   getDocuments() {
     return this.http.get<Document[]>('http://localhost:3000/documents');
